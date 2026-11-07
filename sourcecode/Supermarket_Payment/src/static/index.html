@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOPRCS Demo - Hệ Thống Thanh Toán Ngoại Tuyến Siêu Thị</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-title">
+      <h1>🛒 Siêu Thị Mart — Hệ Thống Thanh Toán Ngoại Tuyến (SOPRCS)</h1>
+      <p>Mô phỏng giải quyết bài toán: Khách hàng không mang ví & điện thoại mất sóng di động/Wi-Fi tại quầy</p>
+    </div>
+    <div class="header-actions">
+      <span class="badge-status">● Cổng Thanh Toán Trực Tuyến (Port 8080)</span>
+      <button class="btn-reset" onclick="initDemoData()">🔄 Khởi Tạo Lại Dữ Liệu</button>
+    </div>
+  </header>
+
+  <!-- Main Dual Simulator Grid -->
+  <main class="main-container">
+
+    <!-- LEFT PANEL: Cashier POS Terminal -->
+    <section class="pos-panel">
+      <!-- POS Top Bar -->
+      <div class="pos-top-bar">
+        <div><strong>TRẠM THU NGÂN #01</strong> | Quầy: <strong>LINE_01</strong> | Thu ngân: <strong>Nguyễn Thùy Linh (MS: 1024)</strong></div>
+        <div>Mạng POS: <span style="color: #4ade80; font-weight: bold;">● Cáp Mạng LAN (Đường truyền riêng)</span></div>
+      </div>
+
+      <!-- POS Hotkey Action Bar -->
+      <div class="pos-hotkeys-bar">
+        <button class="hotkey-btn btn-scan" onclick="triggerScanCustomerQR()">
+          <kbd>F7</kbd> Quét Offline QR
+        </button>
+        <button class="hotkey-btn btn-park" onclick="parkCurrentCart()">
+          <kbd>F8</kbd> Treo Đơn Hàng (Park Cart)
+        </button>
+        <button class="hotkey-btn btn-resume" onclick="promptResumeOrder()">
+          <kbd>F9</kbd> Khôi Phục Đơn Treo
+        </button>
+        <button class="hotkey-btn" onclick="processPayLater()">
+          <kbd>F10</kbd> Tạm Ứng Pay-Later
+        </button>
+        <button class="hotkey-btn" style="color: #ef4444;" onclick="clearCart()">
+          🗑️ Xóa Giỏ
+        </button>
+      </div>
+
+      <!-- POS Body: Products & Cart -->
+      <div class="pos-body">
+        <!-- Products Grid -->
+        <div class="product-section">
+          <div class="section-title">
+            <span>Danh Mục Hàng Hóa</span>
+            <small style="color: #64748b;">(Click món để thêm vào giỏ)</small>
+          </div>
+          <div class="products-grid" id="products-list">
+            <!-- Dynamic Products Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Cart Table & Total -->
+        <div class="cart-section">
+          <div class="section-title">
+            <span>Giỏ Hàng Thanh Toán</span>
+            <span id="cart-item-count" style="font-size: 0.8rem; color: #2563eb;">0 món</span>
+          </div>
+          <div class="cart-table-wrapper">
+            <table class="cart-table">
+              <thead>
+                <tr>
+                  <th>Tên SP</th>
+                  <th>Giá</th>
+                  <th style="text-align: center;">SL</th>
+                  <th style="text-align: right;">Tổng</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="cart-items-body">
+                <tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 20px;">Giỏ hàng đang trống. Hãy chọn sản phẩm bên trái!</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="cart-summary">
+            <div class="summary-row">
+              <span>Tạm tính:</span>
+              <span id="subtotal-amount">0 đ</span>
+            </div>
+            <div class="summary-row">
+              <span>Thuế VAT (8%):</span>
+              <span id="vat-amount">0 đ</span>
+            </div>
+            <div class="summary-row total">
+              <span>TỔNG CỘNG:</span>
+              <span id="total-amount">0 đ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- POS Bottom Hardware & Feedback Area -->
+      <div class="pos-bottom-area">
+        <!-- NFC Contactless Receiver Zone -->
+        <div class="nfc-receiver-box" id="nfc-zone">
+          <div class="nfc-icon">📶</div>
+          <strong style="color: #065f46; font-size: 0.85rem;">Đầu Đọc Thẻ Không Tiếp Xúc (NFC Contactless)</strong>
+          <p style="font-size: 0.72rem; color: #047857; margin-top: 2px;">Sẵn sàng nhận tín hiệu Apple Pay / Google Wallet từ điện thoại khách</p>
+        </div>
+
+        <!-- In-Store Express Wi-Fi Card -->
+        <div class="wifi-badge-card">
+          <div class="wifi-qr-placeholder">📶</div>
+          <div>
+            <strong style="font-size: 0.82rem; color: #1e40af;">Express Pay Wi-Fi Tại Quầy</strong>
+            <p style="font-size: 0.72rem; color: #3b82f6;">SSID: <code>@SieuThi_ThanhToanNhanh</code></p>
+            <p style="font-size: 0.68rem; color: #64748b;">(Không mật khẩu, Whitelist app Ngân hàng)</p>
+          </div>
+        </div>
+
+        <!-- Suspended Parked Orders Queue -->
+        <div class="parked-list-box" id="parked-queue-box">
+          <div>
+            <strong style="color: #92400e;">📋 Hàng chờ đơn treo (Parked Orders):</strong>
+            <span id="parked-count-text" style="margin-left: 6px; color: #b45309;">Chưa có đơn treo nào</span>
+          </div>
+          <div id="parked-quick-actions"></div>
+        </div>
+
+        <!-- Status & Alert Messages -->
+        <div id="pos-message" class="pos-message-banner"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: Customer Smartphone Mockup -->
+    <section class="phone-panel">
+      <div class="phone-mockup">
+        <div class="phone-inner">
+
+          <!-- Phone Top Status Bar -->
+          <div class="phone-status-bar">
+            <span>11:45</span>
+            <div class="dynamic-island"></div>
+            <span id="phone-signal-icons">📶 4G 🔋 98%</span>
+          </div>
+
+          <!-- Network Mode Simulator Switcher -->
+          <div class="network-toggle-box">
+            <div class="network-status-text" id="network-status-label">
+              <span id="network-indicator-dot">🟢</span>
+              <span id="network-text">4G LTE (Trực Tuyến)</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="network-toggle" onchange="toggleNetworkMode(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- App Navigation Tabs -->
+          <nav class="app-tabs">
+            <button class="tab-btn active" onclick="switchPhoneTab('tab-offline-qr', this)">⚡ Offline QR</button>
+            <button class="tab-btn" onclick="switchPhoneTab('tab-apple-pay', this)">💳 Apple Pay</button>
+            <button class="tab-btn" onclick="switchPhoneTab('tab-wifi', this)">📶 Wi-Fi Quầy</button>
+            <button class="tab-btn" onclick="switchPhoneTab('tab-loyalty', this)">👑 Hội Viên</button>
+          </nav>
+
+          <!-- App Content Body -->
+          <div class="app-content">
+
+            <!-- TAB 1: Offline Dynamic QR Code -->
+            <div class="tab-content active" id="tab-offline-qr">
+              <p style="font-size: 0.78rem; text-align: center; color: #94a3b8; margin-bottom: 6px;">
+                Mã QR bảo mật ngoại tuyến sinh từ chip điện thoại. Hoạt động độc lập không cần 4G/Wi-Fi!
+              </p>
+
+              <div class="qr-container">
+                <div id="qrcode-canvas"></div>
+                <div class="timer-wrapper">
+                  <span>Mã tự đổi sau:</span>
+                  <span id="qr-timer-text" style="color: #38bdf8; font-size: 1.1rem; font-weight: 800;">60s</span>
+                </div>
+              </div>
+
+              <div style="font-size: 0.7rem; color: #64748b; margin-top: 8px; text-align: center;">
+                Token ID: <span id="current-token-id" style="color: #94a3b8; font-family: monospace;">Đang nạp...</span>
+              </div>
+
+              <!-- Action: Simulate Scanner at POS -->
+              <button class="btn-phone-action" onclick="simulateScanFromPhone()">
+                ⚡ Đưa Mã Cho Thu Ngân Quét (POS Scan)
+              </button>
+              
+              <!-- Action: Simulate Replay Attack Test -->
+              <button class="btn-phone-action" style="background: #475569; margin-top: 8px; font-size: 0.78rem;" onclick="simulateReplayAttack()">
+                ⚠️ Test Gian Lận: Thử Quét Lại Mã Này (Replay)
+              </button>
+            </div>
+
+            <!-- TAB 2: Apple Pay / Google Wallet NFC -->
+            <div class="tab-content" id="tab-apple-pay">
+              <p style="font-size: 0.78rem; text-align: center; color: #94a3b8;">
+                Thẻ số hóa trong Chip Secure Element của máy. <strong>100% không cần điện thoại có mạng!</strong>
+              </p>
+
+              <div class="card-mockup">
+                <div class="card-top">
+                  <span>VISA PLATINUM</span>
+                  <span>Apple Pay</span>
+                </div>
+                <div class="card-chip"></div>
+                <div class="card-number">•••• •••• •••• 1024</div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+                  <span>NGUYEN VAN AN</span>
+                  <span>EXP: 09/29</span>
+                </div>
+              </div>
+
+              <button class="btn-phone-action nfc" onclick="simulateNFCTapFromPhone()">
+                📲 Chạm Điện Thoại Vào Máy POS (NFC Tap)
+              </button>
+            </div>
+
+            <!-- TAB 3: In-Store Wi-Fi Fast Connect -->
+            <div class="tab-content" id="tab-wifi">
+              <div style="text-align: center; margin-top: 20px;">
+                <div style="font-size: 3rem;">📶</div>
+                <h3 style="color: #38bdf8; font-size: 1rem; margin-top: 8px;">Express Pay Wi-Fi</h3>
+                <p style="font-size: 0.78rem; color: #cbd5e1; margin-top: 6px;">
+                  Mạng Wi-Fi chuyên dụng tại quầy thanh toán. Không quảng cáo, không mật khẩu, không OTP.
+                </p>
+                <div style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-top: 14px; text-align: left; font-size: 0.75rem;">
+                  <div>• <strong>SSID:</strong> @SieuThi_ThanhToanNhanh</div>
+                  <div>• <strong>Bảo mật:</strong> Walled Garden (Chỉ mở App Ngân hàng/Ví)</div>
+                  <div>• <strong>Thời gian:</strong> Tự ngắt sau 15 phút</div>
+                </div>
+                <button class="btn-phone-action" onclick="simulateWiFiConnect()">
+                  📷 Quét Mã Wi-Fi Tại Quầy & Vào Mạng Ngay
+                </button>
+              </div>
+            </div>
+
+            <!-- TAB 4: Member Wallet & Pay Later -->
+            <div class="tab-content" id="tab-loyalty">
+              <div style="background: #1e293b; border-radius: 12px; padding: 14px; width: 100%; border: 1px solid #334155;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="color: #fbbf24; font-size: 0.9rem;">👑 HỘI VIÊN GOLD VIP</strong>
+                  <span style="background: #059669; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">Đã eKYC</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.8rem;">
+                  <div>Khách hàng: <strong>Nguyễn Văn An</strong></div>
+                  <div>Số điện thoại: <strong>0912 345 678</strong></div>
+                  <div>Điểm tín nhiệm: <strong style="color: #4ade80;">780 / 850</strong></div>
+                </div>
+                <div style="margin-top: 12px; border-top: 1px dashed #475569; padding-top: 10px;">
+                  <div style="font-size: 0.75rem; color: #94a3b8;">Hạn mức Tạm Ứng (Pay-Later):</div>
+                  <div style="font-size: 1.2rem; font-weight: 800; color: #38bdf8;" id="customer-pay-later-limit">500,000 đ</div>
+                </div>
+                <div style="margin-top: 8px;">
+                  <div style="font-size: 0.75rem; color: #94a3b8;">Số dư ví tích lũy:</div>
+                  <div style="font-size: 1.1rem; font-weight: 800; color: #10b981;" id="customer-wallet-balance">2,500,000 đ</div>
+                </div>
+              </div>
+
+              <button class="btn-phone-action" style="background: #8b5cf6;" onclick="requestInStorePayLater()">
+                🤝 Đề Nghị Xuất Hóa Đơn Trả Sau (Pay Later)
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Real-time Audit Trail Log -->
+  <footer class="audit-log-panel">
+    <div class="audit-title">
+      <span>🛡️ NHẬT KÝ AN NINH & GIAO DỊCH NGOẠI TUYẾN THỜI GIAN THỰC (AUDIT TRAIL)</span>
+      <span id="log-count">0 sự kiện</span>
+    </div>
+    <div class="audit-logs-container" id="audit-logs">
+      <!-- Live logs appended here -->
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/qrcode.min.js"></script>
+  <script src="js/pos.js?v=clean2"></script>
+  <script src="js/customer.js?v=clean2"></script>
+</body>
+</html>
+

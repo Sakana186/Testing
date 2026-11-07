@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cổng Tuyển Dụng Nội Bộ Doanh Nghiệp - Microservices Architecture</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-title">
+      <h1>🏢 Hệ Thống Tuyển Dụng & Điều Chuyển Nội Bộ Minh Bạch (Internal Job Mobility)</h1>
+      <p>Số hóa quy trình tuyển dụng nội bộ: Đếm ngược hạn chót thời gian thực, nộp đơn 1-click bảo mật, quản lý luồng Kanban HR</p>
+    </div>
+    <div class="header-actions">
+      <span class="badge-status" id="cluster-status-badge">● Cổng API Gateway: Port 8090 (Đang hoạt động)</span>
+      <button class="btn-reset" onclick="initDemoData()">🔄 Khởi Tạo Lại Dữ Liệu Demo</button>
+    </div>
+  </header>
+
+  <!-- Main Dual Simulator Grid -->
+  <main class="main-container">
+
+    <!-- LEFT PANEL: Employee Career Portal -->
+    <section class="portal-panel">
+      
+      <!-- Employee Profile Switcher & Bar -->
+      <div class="employee-bar">
+        <div class="emp-select-wrap">
+          <label for="employee-select">👤 Nhân Viên Đang Đăng Nhập:</label>
+          <select id="employee-select" onchange="switchEmployee(this.value)">
+            <option value="EMP-101">EMP-101: Nguyễn Văn An (Công nghệ - 18m - Đủ ĐK)</option>
+            <option value="EMP-102">EMP-102: Trần Thị Bích (Tài chính - 4m - Chưa đủ 6 tháng)</option>
+            <option value="EMP-103">EMP-103: Lê Hoàng Nam (Marketing - 24m - Đủ ĐK)</option>
+            <option value="EMP-104">EMP-104: Phạm Minh Đức (Vận hành - 8m - Kỷ luật Cảnh cáo)</option>
+          </select>
+        </div>
+
+        <div class="emp-stats">
+          <span class="stat-pill" id="seniority-pill">⏳ Thâm niên: 18 tháng</span>
+          <span class="stat-pill" id="eligibility-pill">✅ Đủ điều kiện</span>
+          <span class="stat-pill" id="active-apps-pill">📋 Đang ứng tuyển: 0/3</span>
+          <button class="btn-noti" onclick="toggleNotificationDrawer()" title="Thông báo hệ thống">
+            🔔 <span id="noti-badge" class="noti-badge">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs for Candidate -->
+      <div class="portal-tabs">
+        <button class="tab-btn active" id="tab-jobs-btn" onclick="switchPortalTab('jobs')">
+          📢 Bảng Tin Tuyển Dụng Đang Mở
+        </button>
+        <button class="tab-btn" id="tab-myapps-btn" onclick="switchPortalTab('myapps')">
+          📑 Tiến Trình Hồ Sơ Của Tôi (<span id="my-apps-count">0</span>)
+        </button>
+      </div>
+
+      <!-- TAB 1: Job Openings Board -->
+      <div class="tab-content active" id="tab-jobs-content">
+        <!-- Filter and Search Controls -->
+        <div class="filter-bar">
+          <input type="text" id="job-search-input" placeholder="🔍 Tìm theo vị trí, kỹ năng..." oninput="filterJobs()">
+          <select id="dept-filter" onchange="filterJobs()">
+            <option value="">-- Tất cả phòng ban --</option>
+            <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+            <option value="Kinh doanh & Tiếp thị">Kinh doanh & Tiếp thị</option>
+            <option value="Tài chính - Kế toán">Tài chính - Kế toán</option>
+            <option value="Nhân sự">Nhân sự</option>
+            <option value="Vận hành & Hậu cần">Vận hành & Hậu cần</option>
+          </select>
+          <select id="level-filter" onchange="filterJobs()">
+            <option value="">-- Cấp bậc --</option>
+            <option value="Junior">Junior</option>
+            <option value="Middle">Middle</option>
+            <option value="Senior">Senior</option>
+            <option value="Lead / Manager">Lead / Manager</option>
+          </select>
+          <label class="checkbox-label">
+            <input type="checkbox" id="only-active-checkbox" onchange="filterJobs()" checked>
+            Chỉ xem tin còn hạn
+          </label>
+        </div>
+
+        <!-- Job Cards Grid -->
+        <div class="jobs-list" id="jobs-container">
+          <!-- Dynamic Job Cards rendered here -->
+          <div class="loading-placeholder">Đang tải danh sách việc làm nội bộ...</div>
+        </div>
+      </div>
+
+      <!-- TAB 2: My Applications Pipeline Tracking -->
+      <div class="tab-content" id="tab-myapps-content" style="display: none;">
+        <div class="myapps-header">
+          <h3>Theo Dõi Tiến Độ Tuyển Dụng Bảo Mật</h3>
+          <p class="privacy-note">🔒 Thông tin ứng tuyển được giữ kín tuyệt đối với Quản lý phòng ban cũ cho tới khi bạn đồng ý nhận Offer chính thức.</p>
+        </div>
+        <div class="myapps-list" id="myapps-container">
+          <!-- Dynamic My Applications rendered here -->
+          <div class="loading-placeholder">Chưa có hồ sơ ứng tuyển nào.</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANEL: HR Recruitment Command Center -->
+    <section class="hr-panel">
+      <!-- HR Panel Header & Action Bar -->
+      <div class="hr-top-bar">
+        <div class="hr-info">
+          <h2>🎯 BẢNG ĐIỀU HÀNH TUYỂN DỤNG HR (KANBAN PIPELINE)</h2>
+          <p>Điều phối hồ sơ ứng viên nội bộ theo chu trình tuyển chọn chuẩn hóa</p>
+        </div>
+        <div class="hr-actions">
+          <button class="btn-primary" onclick="openNewJobModal()">➕ Đăng Vị Trí Mới</button>
+          <button class="btn-secondary" onclick="openManageDeadlinesModal()">⏱️ Quản Lý Hạn Chót</button>
+        </div>
+      </div>
+
+      <!-- 5-Column Kanban Board -->
+      <div class="kanban-board">
+        <!-- Col 1: Applied -->
+        <div class="kanban-column" id="col-applied">
+          <div class="column-header col-header-applied">
+            <span>1. Nộp Mới (APPLIED)</span>
+            <span class="count-badge" id="count-applied">0</span>
+          </div>
+          <div class="column-cards" id="cards-applied"></div>
+        </div>
+
+        <!-- Col 2: HR Screening -->
+        <div class="kanban-column" id="col-screening">
+          <div class="column-header col-header-screening">
+            <span>2. Sàng Lọc (SCREENING)</span>
+            <span class="count-badge" id="count-screening">0</span>
+          </div>
+          <div class="column-cards" id="cards-screening"></div>
+        </div>
+
+        <!-- Col 3: Interview -->
+        <div class="kanban-column" id="col-interview">
+          <div class="column-header col-header-interview">
+            <span>3. Phỏng Vấn (INTERVIEW)</span>
+            <span class="count-badge" id="count-interview">0</span>
+          </div>
+          <div class="column-cards" id="cards-interview"></div>
+        </div>
+
+        <!-- Col 4: Offer -->
+        <div class="kanban-column" id="col-offer">
+          <div class="column-header col-header-offer">
+            <span>4. Đề Nghị (OFFER)</span>
+            <span class="count-badge" id="count-offer">0</span>
+          </div>
+          <div class="column-cards" id="cards-offer"></div>
+        </div>
+
+        <!-- Col 5: Result (Transferred or Rejected) -->
+        <div class="kanban-column" id="col-result">
+          <div class="column-header col-header-result">
+            <span>5. Kết Quả (RESULT)</span>
+            <span class="count-badge" id="count-result">0</span>
+          </div>
+          <div class="column-cards" id="cards-result"></div>
+        </div>
+      </div>
+
+      <!-- Cluster Services Health Bar at Bottom -->
+      <div class="cluster-health-footer">
+        <span class="health-title">Trạng Thái Cụm 5 Microservices:</span>
+        <div class="health-nodes">
+          <span class="node-pill online">Gateway: 8090</span>
+          <span class="node-pill online">Job Service: 8091</span>
+          <span class="node-pill online">App Service: 8092</span>
+          <span class="node-pill online">Employee Service: 8093</span>
+          <span class="node-pill online">Notification Service: 8094</span>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: 1-Click Apply Modal -->
+  <div class="modal-overlay" id="apply-modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🚀 Ứng Tuyển Vị Trí Nội Bộ</h3>
+        <button class="btn-close" onclick="closeApplyModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="job-preview-summary" id="apply-job-summary">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div class="form-group">
+          <label>👤 Ứng viên:</label>
+          <input type="text" id="apply-emp-name" readonly class="input-readonly">
+        </div>
+
+        <div class="form-group">
+          <label>🏢 Phòng ban & Thâm niên hiện tại:</label>
+          <input type="text" id="apply-emp-dept" readonly class="input-readonly">
+        </div>
+
+        <div class="form-group">
+          <label>📝 Thư Nguyện Vọng (Cover Letter) <small style="color: #38bdf8;">(Tối thiểu 10 ký tự - BVA Min)</small>:</label>
+          <textarea id="apply-cover-letter" rows="4" placeholder="Chia sẻ lý do bạn mong muốn thử sức ở vị trí này và những đóng góp của bạn..."></textarea>
+          <small class="char-count" id="cover-char-count">0 ký tự</small>
+        </div>
+
+        <div class="form-group">
+          <label>📎 Hồ Sơ Đính Kèm (Resume / Portfolio):</label>
+          <select id="apply-resume-select">
+            <option value="HoSo_NoiBo_DongBoTuHR.pdf">📄 Đồng bộ tự động Hồ sơ nhân sự nội bộ (HR Profile)</option>
+            <option value="CV_ChuyenMon_CapNhat_2026.pdf">📄 Tải lên CV Chuyên môn mới nhất (PDF - 2.5MB)</option>
+            <option value="Portfolio_KinhNghiem_DuAn.pdf">📄 Portfolio các dự án xuất sắc đã làm (PDF - 4.1MB)</option>
+          </select>
+        </div>
+
+        <div class="boundary-tip">
+          <strong>⚡ Kiểm tra điều kiện tự động:</strong>
+          <ul>
+            <li>Thâm niên: Tối thiểu 6 tháng tại vị trí hiện tại.</li>
+            <li>Kỷ luật: Không vi phạm mức Cảnh cáo/Khiển trách trong 12 tháng.</li>
+            <li>Giới hạn: Tối đa 3 hồ sơ đang xử lý đồng thời.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeApplyModal()">Hủy Bỏ</button>
+        <button class="btn-primary" onclick="submitApplication()">Xác Nhận Nộp Đơn (1-Click Apply)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Create New Job Modal -->
+  <div class="modal-overlay" id="new-job-modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📢 Đăng Tin Tuyển Dụng Nội Bộ Mới</h3>
+        <button class="btn-close" onclick="closeNewJobModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Tiêu Đề Vị Trí (*):</label>
+          <input type="text" id="new-job-title" placeholder="VD: Senior Backend Engineer (Python/Go)">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Phòng Ban Tuyển Dụng:</label>
+            <select id="new-job-dept">
+              <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+              <option value="Kinh doanh & Tiếp thị">Kinh doanh & Tiếp thị</option>
+              <option value="Tài chính - Kế toán">Tài chính - Kế toán</option>
+              <option value="Nhân sự">Nhân sự</option>
+              <option value="Vận hành & Hậu cần">Vận hành & Hậu cần</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Cấp Bậc:</label>
+            <select id="new-job-level">
+              <option value="Junior">Junior</option>
+              <option value="Middle">Middle</option>
+              <option value="Senior">Senior</option>
+              <option value="Lead / Manager">Lead / Manager</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Số Lượng Tuyển (Headcount):</label>
+            <input type="number" id="new-job-headcount" value="1" min="1" max="20">
+          </div>
+          <div class="form-group">
+            <label>Mức Lương / Thù Lao (VNĐ):</label>
+            <input type="text" id="new-job-salary" value="30.000.000 - 45.000.000">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Hạn Chót Nộp Hồ Sơ (Deadline - YYYY-MM-DD):</label>
+          <input type="date" id="new-job-deadline">
+        </div>
+        <div class="form-group">
+          <label>Mô Tả & Yêu Cầu Chuyên Môn:</label>
+          <textarea id="new-job-requirements" rows="3" placeholder="Yêu cầu kỹ năng, công nghệ và kinh nghiệm mong đợi..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeNewJobModal()">Đóng</button>
+        <button class="btn-primary" onclick="submitCreateJob()">Đăng Tin Lên Cổng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Manage Job Deadlines & Status -->
+  <div class="modal-overlay" id="deadlines-modal" style="display: none;">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3>⏱️ Quản Lý Hạn Chót & Đóng/Mở Tin Tuyển</h3>
+        <button class="btn-close" onclick="closeManageDeadlinesModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Mã</th>
+              <th>Tiêu Đề</th>
+              <th>Hạn Chót Hiện Tại</th>
+              <th>Trạng Thái</th>
+              <th>Hành Động HR</th>
+            </tr>
+          </thead>
+          <tbody id="deadline-jobs-table-body">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeManageDeadlinesModal()">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: Kanban Action Modal (Update Application Status & Score) -->
+  <div class="modal-overlay" id="kanban-action-modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="kanban-modal-title">Cập Nhật Hồ Sơ Ứng Viên</h3>
+        <button class="btn-close" onclick="closeKanbanActionModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="action-app-id">
+        <div class="form-group">
+          <label>Chuyển Sang Bước:</label>
+          <select id="action-new-status">
+            <option value="HR_SCREENING">2. Sàng Lọc Hồ Sơ (HR Screening)</option>
+            <option value="INTERVIEW">3. Phỏng Vấn Chuyên Môn (Interview)</option>
+            <option value="OFFER">4. Đề Nghị Điều Chuyển (Offer)</option>
+            <option value="TRANSFERRED">5. Hoàn Tất Điều Chuyển (Transferred)</option>
+            <option value="REJECTED">❌ Từ Chối Hồ Sơ (Rejected)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Điểm Phỏng Vấn (Thang 0 - 100 điểm, Điểm chuẩn >= 70):</label>
+          <input type="number" id="action-score" min="0" max="100" placeholder="Nhập điểm đánh giá (0-100)">
+        </div>
+        <div class="form-group">
+          <label>Ghi Chú Đánh Giá Tuyển Dụng:</label>
+          <textarea id="action-hr-notes" rows="3" placeholder="Nhận xét chuyên môn, thỏa thuận lương mới, ngày nhận việc dự kiến..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeKanbanActionModal()">Hủy</button>
+        <button class="btn-primary" onclick="submitKanbanTransition()">Xác Nhận Cập Nhật</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICATION DRAWER / POPOVER -->
+  <div class="notification-drawer" id="notification-drawer" style="display: none;">
+    <div class="noti-header">
+      <h4>📬 Hộp Thư Thông Báo Cá Nhân</h4>
+      <button class="btn-close" onclick="toggleNotificationDrawer()">✕</button>
+    </div>
+    <div class="noti-body" id="noti-list">
+      <!-- Populated dynamically -->
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/employee_portal.js"></script>
+  <script src="js/hr_dashboard.js"></script>
+  <script>
+    // Initial bootstrap
+    document.addEventListener("DOMContentLoaded", () => {
+      loadEmployeeContext();
+      loadJobs();
+      loadKanbanApplications();
+      // Setup cover letter char count listener
+      const clInput = document.getElementById("apply-cover-letter");
+      if (clInput) {
+        clInput.addEventListener("input", () => {
+          document.getElementById("cover-char-count").innerText = `${clInput.value.length} ký tự`;
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+

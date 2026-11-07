@@ -1,0 +1,17 @@
+"""
+config.py - Common configuration for Microservices Topology
+Defines host, ports, and internal inter-service URLs.
+"""
+
+GATEWAY_PORT = 8080
+POS_SERVICE_PORT = 8081
+PAYMENT_SERVICE_PORT = 8082
+TOKEN_SERVICE_PORT = 8083
+CUSTOMER_SERVICE_PORT = 8084
+
+GATEWAY_URL = f"http://127.0.0.1:{GATEWAY_PORT}"
+POS_SERVICE_URL = f"http://127.0.0.1:{POS_SERVICE_PORT}"
+PAYMENT_SERVICE_URL = f"http://127.0.0.1:{PAYMENT_SERVICE_PORT}"
+TOKEN_SERVICE_URL = f"http://127.0.0.1:{TOKEN_SERVICE_PORT}"
+CUSTOMER_SERVICE_URL = f"http://127.0.0.1:{CUSTOMER_SERVICE_PORT}"
+
